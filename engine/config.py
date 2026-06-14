@@ -63,7 +63,7 @@ DEFAULTS = {
     "CROSSFADE_FRAMES": 0,   # 컷마다 오디오 크로스페이드 프레임 수 (0=끔)
 
     # 안전망
-    "MAKE_REJECTED": True,   # 잘려나간 구간만 모은 '버린 컷' 시퀀스도 생성
+    "MAKE_REJECTED": False,  # 잘려나간 구간만 모은 '버린 컷' 시퀀스 생성 여부 (기본 끔)
     "BACKUP_OUTPUTS": True,  # 덮어쓰기 전 이전 결과(xml/srt/report/words)를 _backup/에 보관
     "HTML_REPORT": True,     # 비블 다크 톤 시각 리포트(클릭 타임코드) HTML 생성
     "POLISH_SUBTITLES": True, # 자막을 한 줄 30자로 마감 + .vtt/.ass(비블 스타일) 까지 한 번에 생성
