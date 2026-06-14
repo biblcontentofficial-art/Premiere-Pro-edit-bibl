@@ -34,6 +34,13 @@ python3 engine/subtitle_polish.py "output/<base>_cut.srt"
 → 교정 SRT(원본 `.srt.bak` 백업) + `.vtt` + 비블 스타일 `.ass`(폰트/외곽선/하단중앙) 생성.
 이 도구가 못 하는 **문맥 판단(고유명사 교정·의미 기반 분할)**은 에디터가 직접. 흐름: ① 고유명사 등 문맥 교정을 SRT에 반영 → ② subtitle_polish.py로 마감.
 
+## 강조 키워드 자막 (선택)
+숫자·단위·핵심어를 강조색으로 칠한 ASS를 따로 만들 수 있다 (기획자의 `[자막강조]` 마커와 연결):
+```bash
+python3 engine/emphasis_subs.py "output/<base>_cut.srt" 구체성 영업사원 치트키
+```
+→ `<base>_cut_emphasis.ass` (숫자/단위 자동 + 지정 키워드를 teal로). 리서치 핵심어를 키워드로 넘기면 효과적.
+
 ## 타이밍 무결성 (절대 규칙)
 교정 후 반드시 검증: 모든 자막의 시작<끝, 이전 끝 ≤ 다음 시작(겹침 0). 분할 시 기존 구간을 글자 비율로 쪼갠다. 검증 실패하면 교정 롤백.
 
