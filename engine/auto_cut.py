@@ -239,7 +239,7 @@ def find_choppy(keeps, window, max_cuts):
 
 def get_transcript(video, audio_src, cache):
     if os.path.exists(cache):
-        print("▶ 받아쓰기 캐시 사용 (재전사 생략)")
+        print("> 받아쓰기 캐시 사용 (재전사 생략)")
         return [tuple(w) for w in json.load(open(cache, encoding="utf-8"))]
     words = transcribe(audio_src, model=CFG["STT_MODEL"],
                        initial_prompt=CFG["VERBATIM_PROMPT"], condition=True)
@@ -287,18 +287,18 @@ def main():
     if CFG.get("BACKUP_OUTPUTS"):
         bdir = backup_outputs(outdir, base)
         if bdir:
-            print(f"▶ 이전 결과 백업 → _backup/{os.path.basename(bdir)}/")
+            print(f"> 이전 결과 백업 → _backup/{os.path.basename(bdir)}/")
 
     src = "config.json" if CFG.get("_config_json") else f"프리셋:{CFG['_preset']}"
-    print(f"▶ 미디어 분석 중...  (설정 {src})")
+    print(f"> 미디어 분석 중...  (설정 {src})")
     info = probe_media(video)
     print(f"   길이 {fmt(info['duration'])} · {info['width']}x{info['height']} · {info['fps']}fps")
 
-    print("▶ 무음 감지 중...")
+    print("> 무음 감지 중...")
     sil_keeps = keep_ranges_from_silence(detect_silence(video), info["duration"])
     kept_sil = sum(b - a for a, b in sil_keeps)
 
-    print("▶ 음량 분석 + 오디오 정리 중...")
+    print("> 음량 분석 + 오디오 정리 중...")
     loud = measure_loudness(video)
     extra = []
     if CFG.get("DENOISE"):
@@ -355,7 +355,7 @@ def main():
     if CFG.get("ACOUSTIC_FILLER") and clean_audio:
         try:
             import acoustic_filler as AF
-            print("▶ 어/음 음향 검출 중...")
+            print("> 어/음 음향 검출 중...")
             r_, f_, v_ = AF.analyze(AF.load_audio(clean_audio))
             checked = AF.cross_check(AF.detect(r_, f_, v_), words)
             n_ac = 0
@@ -366,7 +366,7 @@ def main():
                     n_ac += 1
             print(f"   음향 어/음 {n_ac}개 추가")
         except Exception as ex:
-            print(f"   ⚠ 음향 검출 건너뜀: {ex}")
+            print(f"   [주의] 음향 검출 건너뜀: {ex}")
 
     if removes:
         keeps = subtract(sil_keeps, removes)
@@ -385,11 +385,11 @@ def main():
 
     kept = sum(b - a for a, b in keeps)
     removed = info["duration"] - kept
-    print(f"\n   ✂ 총 제거: {fmt(removed)} ({removed/info['duration']*100:.1f}%)  "
+    print(f"\n   총 제거: {fmt(removed)} ({removed/info['duration']*100:.1f}%)  "
           f"| 컷 {len(keeps)}개 | 최종 {fmt(kept)}")
 
     # ── XML 생성 ──
-    print("▶ 프리미어 시퀀스(XML) 생성 중...")
+    print("> 프리미어 시퀀스(XML) 생성 중...")
     gain = compute_gain_db(loud)
     xml, seq_dur = build_fcp7_xml(video, info, keeps, gain, base + " [러프컷]",
                                   clean_audio=clean_audio)
@@ -398,14 +398,14 @@ def main():
     # ── 프레임 무결성 검증 ──
     issues = verify_keeps(keeps)
     if issues:
-        print(f"   ⚠ 검증: 문제 {len(issues)}건 발견")
+        print(f"   [주의] 검증: 문제 {len(issues)}건 발견")
     else:
-        print(f"   ✓ 검증: 갭/겹침/길이오류 0 (컷 {len(keeps)}개)")
+        print(f"   검증: 갭/겹침/길이오류 0 (컷 {len(keeps)}개)")
 
     # ── 자연스러움 가드: 컷이 촘촘한 구간 경고 (잘라낸 뒤 부자연스러움 방지) ──
     choppy = find_choppy(keeps, CFG["CHOPPY_WINDOW"], CFG["CHOPPY_MAX"])
     if choppy:
-        print(f"   ⚠ 자연스러움 주의: 컷이 촘촘한 구간 {len(choppy)}곳 → 리포트에서 확인 권장")
+        print(f"   [주의] 자연스러움 주의: 컷이 촘촘한 구간 {len(choppy)}곳 → 리포트에서 확인 권장")
     rep_path = os.path.join(outdir, base + "_cut_report.txt")
     with open(rep_path, "a", encoding="utf-8") as f:
         f.write(f"━━━ 검증 ━━━\n")
@@ -426,7 +426,7 @@ def main():
             rej_made = True
 
     # ── 자막 생성 ──
-    print("▶ 자막(SRT) 생성 중...")
+    print("> 자막(SRT) 생성 중...")
     mapper = build_mapper(keeps)
     sub_words = [w for w in words if not is_filler(w[2])]
     lines = regroup(sub_words, mapper)
@@ -445,9 +445,9 @@ def main():
             lines = cues
             sub_extra = " (+ .vtt / .ass)"
         except Exception as ex:
-            print(f"   ⚠ 자막 마감 건너뜀: {ex}")
+            print(f"   [주의] 자막 마감 건너뜀: {ex}")
 
-    print(f"\n🎬 완료  (설정 {src})")
+    print(f"\n완료  (설정 {src})")
     print(f"   시퀀스 : {os.path.basename(xml_out)}")
     print(f"   오디오 : {os.path.basename(wav_out)}")
     print(f"   자막   : {os.path.basename(srt_out)}{sub_extra}  ({len(lines)}줄)")
@@ -463,10 +463,10 @@ def main():
                                       base, summary, choppy, report)
             print(f"   리포트 : {os.path.basename(hp)}  (브라우저로 열어 검토)")
         except Exception as ex:
-            print(f"   ⚠ HTML 리포트 건너뜀: {ex}")
+            print(f"   [주의] HTML 리포트 건너뜀: {ex}")
     print(f"\n   프리미어 > 파일 > 가져오기 로 .xml 불러오세요.")
     if len(keeps) > 1:
-        print(f"   💡 자연스러움 팁: 타임라인 전체 선택 → Cmd+Shift+D 하면")
+        print(f"   자연스러움 팁: 타임라인 전체 선택 → Cmd+Shift+D 하면")
         print(f"      모든 컷에 기본 오디오 전환이 적용돼 클릭음 없이 부드러워집니다.")
         rep_path2 = os.path.join(outdir, base + "_cut_report.txt")
         with open(rep_path2, "a", encoding="utf-8") as f:

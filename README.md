@@ -1,4 +1,4 @@
-# 🎬 Premiere Auto-Edit
+# Premiere Auto-Edit
 
 **말하는 영상(롱폼·토크·라이브)을 한 줄 명령으로 러프컷까지.**
 무음·추임새(아·어·음·그러니까)·말더듬을 제거하고, 음량을 유튜브 표준(-14 LUFS)으로 맞추고, 컷에 정렬된 자막까지 만들어 **프리미어에서 바로 편집 가능한 시퀀스**로 내보냅니다. 전부 맥에서 **로컬 실행**(외부 업로드 없음).
@@ -28,7 +28,7 @@
 
 ---
 
-## ✨ 기능
+## 기능
 
 - **무음 제거** — 끝음(작게 흐리는 문장 끝)까지 살리는 민감도 조절
 - **추임새 제거** — `아·어·음·그러니까·뭐·뭔가·막·약간·좀` (문맥상 '좀 더'는 살림)
@@ -39,11 +39,11 @@
 - **자연스러움 가드** — 컷이 너무 촘촘한 구간을 자동 경고 (*"자연스러움 > 최대 제거"*)
 - **안전망** — 버린 컷 시퀀스, 출력 백업, 프레임 무결성 검증, 시각 HTML 리포트
 - **프리셋** — `보수 / 표준 / 공격` (코드 수정 없이 `config.json`으로 세부 조절)
-- **🤖 AI 편집 에이전트 팀** (Claude Code) — 기획·리서치·컷·자막·검수를 자동 협업
+- **AI 편집 에이전트 팀** (Claude Code) — 기획·리서치·컷·자막·검수를 자동 협업
 
 ---
 
-## 📦 요구사항
+## 요구사항
 
 | | |
 |---|---|
@@ -56,8 +56,8 @@
 
 ```bash
 # 1) 받기
-git clone https://github.com/biblcontentofficial-art/Premiere-edit-bibl.git
-cd Premiere-edit-bibl
+git clone https://github.com/biblcontentofficial-art/Premiere-Pro-edit-bibl.git
+cd Premiere-Pro-edit-bibl
 
 # 2) 의존성
 brew install ffmpeg            # 없으면
@@ -69,7 +69,7 @@ chmod +x edit.sh batch.sh
 
 ---
 
-## 🚀 사용법
+## 사용법
 
 ```bash
 # 1) 기본 (표준 프리셋)
@@ -88,11 +88,11 @@ chmod +x edit.sh batch.sh
 2. 자막은 `output/..._cut.srt`(또는 `.ass`)을 가져와 타임라인에 드래그
 3. (선택) 타임라인 전체 선택 → `Cmd+Shift+D` 로 모든 컷에 오디오 전환 적용
 
-> 💡 `_cut_audio.wav`는 XML이 자동으로 끌어옵니다. `_report.html`은 브라우저로 열면 잘린 내용·자연스러움 주의 구간을 타임코드로 확인할 수 있어요.
+> `_cut_audio.wav`는 XML이 자동으로 끌어옵니다. `_report.html`은 브라우저로 열면 잘린 내용·자연스러움 주의 구간을 타임코드로 확인할 수 있어요.
 
 ---
 
-## ⚙️ 튜닝
+## 튜닝
 
 `engine/config.py`의 프리셋, 또는 프로젝트 루트에 `config.json`(→ `config.json.example` 참고)으로 모든 값을 조절합니다.
 
@@ -107,7 +107,7 @@ chmod +x edit.sh batch.sh
 
 ---
 
-## 🧠 작동 원리
+## 작동 원리
 
 프리미어를 직접 조종(UXP/API)하는 대신, **FCP7 XML(편집 가능한 시퀀스 교환 포맷)을 생성해 가져오기**하는 방식입니다. 그래서:
 
@@ -116,19 +116,19 @@ chmod +x edit.sh batch.sh
 - **빠름** — 분석은 ffmpeg + 로컬 Whisper, 시퀀스 생성은 즉시
 
 ```
-원본 영상 ─▶ [파이썬 엔진]
+원본 영상 ─> [파이썬 엔진]
               ├─ 무음 감지(ffmpeg) + 음량 정리(loudnorm)
               ├─ 단어 단위 전사(mlx-whisper, verbatim)
               ├─ 추임새/망설임/더듬 제거 구간 계산
               └─ FCP7 XML(컷 시퀀스) + SRT(컷 정렬 자막)
                         │
-                        ▼
-            프리미어 '불러오기' ─▶ 편집 가능한 러프컷 + 자막
+                        v
+            프리미어 '불러오기' ─> 편집 가능한 러프컷 + 자막
 ```
 
 ---
 
-## 🤖 AI 편집 에이전트 팀 (Claude Code)
+## AI 편집 에이전트 팀 (Claude Code)
 
 [Claude Code](https://claude.com/claude-code)로 이 폴더를 열고 **"이 영상 편집해줘"** 하면, 5개 전문 에이전트가 협업해 기획~검수까지 자동 수행합니다:
 
@@ -144,7 +144,7 @@ chmod +x edit.sh batch.sh
 
 ---
 
-## ⚠️ 한계
+## [주의] 한계
 
 - **macOS 애플 실리콘 전용** (mlx-whisper 의존)
 - **한국어 발화 최적화** (추임새 목록·Whisper 프롬프트가 한국어 기준 — 다른 언어는 목록 교체 필요)
@@ -153,6 +153,6 @@ chmod +x edit.sh batch.sh
 
 ---
 
-## 📄 라이선스
+## 라이선스
 
 [MIT](LICENSE) — 자유롭게 쓰고 고치고 배포하세요. PR 환영합니다.

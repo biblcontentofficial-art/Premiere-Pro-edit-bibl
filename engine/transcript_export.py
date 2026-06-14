@@ -60,7 +60,7 @@ def main():
         f.write(f"- 용도: 챕터·하이라이트·삭제구간·제목/썸네일 문구 분석\n\n---\n\n")
         for s, txt in paras:
             f.write(f"**[{mmss(s)}]** {txt}\n\n")
-    print(f"✅ 전사본 → {os.path.basename(out)}  (문단 {len(paras)}개, {mmss(total)})")
+    print(f"전사본 → {os.path.basename(out)}  (문단 {len(paras)}개, {mmss(total)})")
     print("   미리보기:")
     for s, txt in paras[:3]:
         print(f"     [{mmss(s)}] {txt[:50]}...")

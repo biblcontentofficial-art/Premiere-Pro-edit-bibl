@@ -210,7 +210,7 @@ def main():
     # 검증
     bad = sum(1 for i in range(len(cues)) if cues[i][1] <= cues[i][0]
               or (i and cues[i][0] < cues[i-1][1] - 1e-6))
-    print(f"✅ 자막 고도화 완료 ({n0}→{len(cues)}줄, 타이밍오류 {bad})")
+    print(f"자막 고도화 완료 ({n0}→{len(cues)}줄, 타이밍오류 {bad})")
     print(f"   SRT : {os.path.basename(base)}.srt (교정, 원본은 .srt.bak)")
     print(f"   VTT : {os.path.basename(base)}.vtt")
     print(f"   ASS : {os.path.basename(base)}.ass (비블 스타일 — 폰트/외곽선/하단중앙)")

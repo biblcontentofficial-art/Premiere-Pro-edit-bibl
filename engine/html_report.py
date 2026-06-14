@@ -45,7 +45,7 @@ td{{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:top}}
 .ok{{color:var(--mut)}}.more{{color:var(--mut);text-align:center}}
 .hint{{color:var(--mut);font-size:12px;margin-top:8px}}
 </style></head><body>
-<h1>🎬 {_esc(base)}</h1>
+<h1>{_esc(base)}</h1>
 <div class="sub">컷편집 리포트 · 프리셋 {_esc(summary['preset'])} · 타임코드 클릭 시 복사</div>
 <div class="grid">
   <div class="stat"><div class="v">{summary['pct']:.1f}%</div><div class="l">제거 비율</div></div>
@@ -53,7 +53,7 @@ td{{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:top}}
   <div class="stat"><div class="v">{_dur(summary['kept'])}</div><div class="l">최종 길이</div></div>
   <div class="stat"><div class="v">{summary['cuts']}</div><div class="l">컷 개수</div></div>
 </div>
-<section class="warn"><h2>⚠ 자연스러움 주의 (컷 촘촘 = 부자연 위험)</h2>
+<section class="warn"><h2>[주의] 자연스러움 주의 (컷 촘촘 = 부자연 위험)</h2>
 <table>{ch_rows}</table>
 <div class="hint">이 구간은 컷이 몰려 부자연스러울 수 있어요. 일부 컷을 되돌려 호흡을 살리는 걸 권장.</div></section>
 <section><h2>추임새 ({len(report.get('추임새',[]))})</h2><table>{rows(report.get('추임새',[]))}</table></section>

@@ -31,8 +31,8 @@ for f in "${FILES[@]}"; do
   i=$((i+1))
   echo ""
   echo "━━━━━━━━━━ [$i/$N] $(basename "$f") ━━━━━━━━━━"
-  python3 "$DIR/engine/auto_cut.py" "$f" --preset "$PRESET" || echo "⚠ 실패: $(basename "$f") (건너뜀)"
+  python3 "$DIR/engine/auto_cut.py" "$f" --preset "$PRESET" || echo "[주의] 실패: $(basename "$f") (건너뜀)"
 done
 
 echo ""
-echo "🎬 배치 완료 ($N개). 결과는 output/ 폴더."
+echo "배치 완료 ($N개). 결과는 output/ 폴더."

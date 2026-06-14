@@ -342,20 +342,20 @@ def main():
     out = sys.argv[2] if len(sys.argv) > 2 else os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "output", base + "_cut.xml")
 
-    print("▶ 미디어 분석 중...")
+    print("> 미디어 분석 중...")
     info = probe_media(path)
     print(f"   길이 {fmt(info['duration'])} · {info['width']}x{info['height']} · {info['fps']}fps · {info['channels']}ch")
 
-    print("▶ 무음 감지 중... (오디오 1패스)")
+    print("> 무음 감지 중... (오디오 1패스)")
     sil = detect_silence(path)
     keeps = keep_ranges_from_silence(sil, info["duration"])
     kept = sum(b - a for a, b in keeps)
     removed = info["duration"] - kept
     print(f"   무음 구간 {len(sil)}개 발견 → 살린 구간 {len(keeps)}개")
-    print(f"   ✂ 제거된 무음: {fmt(removed)}  ({removed/info['duration']*100:.1f}%)")
-    print(f"   ✓ 최종 길이:   {fmt(kept)}")
+    print(f"   제거된 무음: {fmt(removed)}  ({removed/info['duration']*100:.1f}%)")
+    print(f"   최종 길이:   {fmt(kept)}")
 
-    print("▶ 음량 분석 중... (오디오 1패스)")
+    print("> 음량 분석 중... (오디오 1패스)")
     loud = measure_loudness(path)
     gain = compute_gain_db(loud)
     print(f"   원본: {loud['I']} LUFS / 트루피크 {loud['TP']} dB")
@@ -363,20 +363,20 @@ def main():
     clean_audio = None
     if CLEAN_AUDIO:
         wav = os.path.splitext(out)[0] + "_audio.wav"
-        print("▶ 오디오 정리 중... (럼블제거→압축→-14 LUFS 노멀라이즈, 인코딩 1패스)")
+        print("> 오디오 정리 중... (럼블제거→압축→-14 LUFS 노멀라이즈, 인코딩 1패스)")
         if make_clean_audio(path, wav, info):
             after = measure_loudness(wav)
             clean_audio = wav
             print(f"   정리됨: {after['I']} LUFS / 트루피크 {after['TP']} dB  → {os.path.basename(wav)}")
         else:
-            print("   ⚠ 오디오 정리 실패 — 정적 게인으로 폴백")
+            print("   [주의] 오디오 정리 실패 — 정적 게인으로 폴백")
 
-    print("▶ 프리미어 XML 생성 중...")
+    print("> 프리미어 XML 생성 중...")
     xml, seq_dur = build_fcp7_xml(path, info, keeps, gain, base + " [러프컷]",
                                   clean_audio=clean_audio)
     with open(out, "w", encoding="utf-8") as f:
         f.write(xml)
-    print(f"\n✅ 완료 → {out}")
+    print(f"\n완료 → {out}")
     print(f"   프리미어에서 파일 > 불러오기 → 이 .xml 선택하면 컷·음량 적용된 시퀀스가 열립니다.")
 
 

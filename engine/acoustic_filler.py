@@ -150,7 +150,7 @@ def main():
     if len(sys.argv) > 2 and os.path.exists(sys.argv[2]):
         words = [tuple(w) for w in json.load(open(sys.argv[2], encoding="utf-8"))]
 
-    print("▶ 오디오 로드 + 음향 분석 중...")
+    print("> 오디오 로드 + 음향 분석 중...")
     a = load_audio(path)
     rms, f0, voi = analyze(a)
     segs = detect(rms, f0, voi)
@@ -169,7 +169,7 @@ def main():
         f.write(f"어/음 음향 후보 ({len(checked)}개) — 신뢰도 높음만 컷 검토 권장\n\n")
         for s, e, d, conf, txt in checked:
             f.write(f"  {srt(s)}~{srt(e)}  ({d:.2f}s) 신뢰도:{conf}  겹친글자:'{txt}'\n")
-    print(f"✅ 리포트 → {os.path.basename(rep)}")
+    print(f"리포트 → {os.path.basename(rep)}")
     print("   미리보기(높음 5개):")
     for s, e, d, conf, txt in hi[:5]:
         print(f"     {srt(s)} ({d:.2f}s) 겹친글자:'{txt}'")

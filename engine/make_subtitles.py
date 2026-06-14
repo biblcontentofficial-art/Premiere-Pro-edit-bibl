@@ -54,7 +54,7 @@ def srt_time(t):
 
 def transcribe(audio, model=MODEL, initial_prompt=None, condition=False):
     import mlx_whisper
-    print(f"▶ 받아쓰기 중... (모델 {model.split('/')[-1]}, 로컬)")
+    print(f"> 받아쓰기 중... (모델 {model.split('/')[-1]}, 로컬)")
     r = mlx_whisper.transcribe(
         audio, path_or_hf_repo=model, language="ko",
         word_timestamps=True, fp16=True,
@@ -149,7 +149,7 @@ def main():
     clean_wav = os.path.join(outdir, base + "_cut_audio.wav")
     audio_src = clean_wav if os.path.exists(clean_wav) else path
 
-    print("▶ 무음 구간 재계산 중...")
+    print("> 무음 구간 재계산 중...")
     info = probe_media(path)
     keeps = keep_ranges_from_silence(detect_silence(path), info["duration"])
     mapper = build_mapper(keeps)
@@ -160,7 +160,7 @@ def main():
 
     lines = regroup(words, mapper)
     write_srt(lines, out)
-    print(f"\n✅ 자막 완료 → {out}")
+    print(f"\n자막 완료 → {out}")
     print(f"   자막 줄 {len(lines)}개")
     if lines:
         print("   미리보기:")

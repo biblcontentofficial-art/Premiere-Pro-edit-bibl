@@ -108,5 +108,5 @@ def load(preset="표준", project_dir=None):
                 cfg.update(user)
                 cfg["_config_json"] = True
             except Exception as e:
-                print(f"   ⚠ config.json 읽기 실패({e}) — 무시")
+                print(f"   [주의] config.json 읽기 실패({e}) — 무시")
     return cfg
