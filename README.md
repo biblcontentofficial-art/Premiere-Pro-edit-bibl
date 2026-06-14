@@ -7,8 +7,8 @@
 
 ```bash
 ./edit.sh "원본영상.mp4" --preset 표준
-# → output/ 에 _cut.xml (시퀀스) · _cut_audio.wav · _cut.srt (자막) 생성
-# → 프리미어에서 파일 > 가져오기 로 .xml 불러오면 끝
+# → output/ 에 한 번에: _cut.xml (시퀀스) · _cut_audio.wav · 자막 _cut.srt/.vtt/.ass
+# → 프리미어에서 파일 > 가져오기 로 .xml + 자막 불러오면 끝
 ```
 
 ---

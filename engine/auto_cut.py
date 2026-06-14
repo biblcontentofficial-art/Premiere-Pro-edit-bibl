@@ -432,10 +432,25 @@ def main():
     lines = regroup(sub_words, mapper)
     write_srt(lines, srt_out)
 
+    # 자막 마감(한 줄 30자) + .vtt/.ass(비블 스타일) 한 번에
+    sub_extra = ""
+    if CFG.get("POLISH_SUBTITLES"):
+        try:
+            import subtitle_polish as SP
+            cues = SP.polish(SP.parse_srt(srt_out))
+            stem = os.path.splitext(srt_out)[0]
+            SP.write_srt(cues, srt_out)
+            SP.write_vtt(cues, stem + ".vtt")
+            SP.write_ass(cues, stem + ".ass")
+            lines = cues
+            sub_extra = " (+ .vtt / .ass)"
+        except Exception as ex:
+            print(f"   ⚠ 자막 마감 건너뜀: {ex}")
+
     print(f"\n🎬 완료  (설정 {src})")
     print(f"   시퀀스 : {os.path.basename(xml_out)}")
     print(f"   오디오 : {os.path.basename(wav_out)}")
-    print(f"   자막   : {os.path.basename(srt_out)}  ({len(lines)}줄)")
+    print(f"   자막   : {os.path.basename(srt_out)}{sub_extra}  ({len(lines)}줄)")
     if rej_made:
         print(f"   버린컷 : {os.path.basename(rej_out)}  (잘린 부분 검토용)")
     if CFG.get("HTML_REPORT"):
