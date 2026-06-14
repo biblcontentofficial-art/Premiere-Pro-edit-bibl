@@ -1,0 +1,27 @@
+# 결과물 (개인 영상 처리 결과 — 절대 커밋 X)
+output/
+
+# 사용자 개인 설정 override (예시는 config.json.example 로 제공)
+config.json
+
+# 미디어 파일
+*.mp4
+*.mov
+*.m4v
+*.mkv
+*.wav
+*.mp3
+*.aac
+
+# 파이썬 캐시
+__pycache__/
+*.pyc
+*.pyo
+
+# 백업/작업 중간물
+**/_backup/
+**/_workspace/
+**/_workspace_prev/
+
+# macOS
+.DS_Store

@@ -1,0 +1,13 @@
+{
+  "_설명": "이 파일을 config.json 으로 복사하면 프리셋보다 우선 적용됩니다. 바꾸고 싶은 값만 남기고 나머지는 지워도 됩니다.",
+  "_프리셋_쓰는법": "config.json 없이 ./edit.sh \"영상.mp4\" --preset 공격  처럼 실행하면 보수/표준/공격 프리셋 사용",
+
+  "MIN_SILENCE": 0.5,
+  "PAD": 0.10,
+  "HESITATION_MIN": 0.35,
+  "REPEAT_GAP": 0.8,
+  "FILLER_PHRASES": ["그러니까", "그니까", "뭐", "뭔가", "막", "약간", "좀"],
+  "TARGET_LUFS": -14.0,
+  "STT_MODEL": "mlx-community/whisper-large-v3-turbo",
+  "CROSSFADE_FRAMES": 0
+}
