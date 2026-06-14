@@ -52,12 +52,19 @@
 | 런타임 | **Python 3.10+**, **ffmpeg** (ffprobe 있으면 더 정밀) |
 | 자막용 | **mlx-whisper** (로컬 음성인식) |
 
-```bash
-# ffmpeg (없으면)
-brew install ffmpeg
+### 설치
 
-# 음성인식
-pip install mlx-whisper
+```bash
+# 1) 받기
+git clone https://github.com/biblcontentofficial-art/Premiere-edit-bibl.git
+cd Premiere-edit-bibl
+
+# 2) 의존성
+brew install ffmpeg            # 없으면
+pip install -r requirements.txt
+
+# 3) 실행 권한
+chmod +x edit.sh batch.sh
 ```
 
 ---
