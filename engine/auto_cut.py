@@ -11,7 +11,7 @@ auto_cut.py — 통합 자동 편집 엔진
 원본은 건드리지 않음(비파괴). 불러온 시퀀스는 전부 수정 가능.
 """
 
-import sys, os, json, difflib
+import sys, os, json, difflib, bisect
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import silence_cut as SC
@@ -355,16 +355,26 @@ def main():
     if CFG.get("ACOUSTIC_FILLER") and clean_audio:
         try:
             import acoustic_filler as AF
+            AF.MIN_DUR = CFG.get("ACOUSTIC_MIN_DUR", 0.20)   # 프리셋으로 민감도 조절
             print("> 어/음 음향 검출 중...")
             r_, f_, v_ = AF.analyze(AF.load_audio(clean_audio))
             checked = AF.cross_check(AF.detect(r_, f_, v_), words)
-            n_ac = 0
+            wstarts = sorted(x[0] for x in sw)
+            follow_max = CFG.get("ACOUSTIC_FOLLOW_MAX", 1.0)
+            n_ac = n_tail = 0
             for s, e, d, conf, txt in checked:
-                if conf == "높음(빈구간)":     # 글자 없는 지속음만 = 가장 안전
+                if conf != "높음(빈구간)":     # 글자 없는 지속음만 = 가장 안전
+                    continue
+                # 끝음 보호: 어/음 뒤에 말이 곧 이어지면 컷(=말 중간), 한참 침묵이면 보존(=문장 끝 꼬리)
+                idx = bisect.bisect_left(wstarts, e)
+                nxt = wstarts[idx] if idx < len(wstarts) else e + 99
+                if nxt - e <= follow_max:
                     removes.append([s, e])
                     report["망설임"].append((s, e, "(음향 어/음)"))
                     n_ac += 1
-            print(f"   음향 어/음 {n_ac}개 추가")
+                else:
+                    n_tail += 1
+            print(f"   음향 어/음 {n_ac}개 추가" + (f" (끝음 꼬리 {n_tail}개 보존)" if n_tail else ""))
         except Exception as ex:
             print(f"   [주의] 음향 검출 건너뜀: {ex}")
 

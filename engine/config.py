@@ -39,9 +39,12 @@ DEFAULTS = {
     "HESITATION_MIN": 0.35,
     "HESITATION_PAD": 0.06,
 
-    # 어/음 음향 검출 — 평탄피치 지속음(글자 없는 구간)을 컷에 포함.
-    # 자연스러움 위해 기본 OFF(리포트만). 공격 프리셋에서만 ON. 안전한 '빈구간'만 컷.
-    "ACOUSTIC_FILLER": False,
+    # 어/음 음향 검출 — Whisper가 글자로 안 적는 망설임 소리를 평탄피치로 잡아 컷.
+    # 기본 ON(표준/공격). 안전한 '빈구간'(글자 없는 지속음)만 컷.
+    "ACOUSTIC_FILLER": True,
+    "ACOUSTIC_MIN_DUR": 0.20,   # 음향 어/음 최소 길이(초). 낮출수록 많이 잡음(과하면 0.25~0.3로)
+    # 어/음 뒤 이 시간(초) 안에 말이 이어지면 컷(=말 중간 어/음), 한참 침묵이면 보존(=문장 끝 꼬리)
+    "ACOUSTIC_FOLLOW_MAX": 1.0,
 
     # 말더듬·중복
     "REMOVE_REPEATS": True,
@@ -77,6 +80,7 @@ PRESETS = {
         "PAD": 0.15,
         "HESITATION_MIN": 0.5,
         "REPEAT_GAP": 0.4,
+        "ACOUSTIC_FILLER": False,   # 보존 우선 — 음향 어/음 컷 안 함
         "FILLER_PHRASES": ["그러니까", "그니까", "그러니깐", "그니깐"],
     },
     "표준": {},  # DEFAULTS 그대로
