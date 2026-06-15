@@ -62,8 +62,9 @@ DEFAULTS = {
     "STT_MODEL": "mlx-community/whisper-large-v3-turbo",
     "VERBATIM_PROMPT": "음... 어... 그러니까, 아 그게, 좀, 뭐, 약간, 막, 그래서, 어어, 음음, 이제, 뭔가. 네, 자.",
 
-    # 컷 다듬기 — 클릭/팝(툭 튀는 소리) 제거
-    "AUDIO_FADE_FRAMES": 1,  # 컷마다 오디오 클립에 페이드 인/아웃 프레임 수 (0=끔, 1=약 1프레임)
+    # 컷 다듬기 — 클릭/팝 제거는 프리미어 Cmd+Shift+D(기본 오디오 전환)로.
+    # XML 페이드(키프레임)는 프리미어가 잘못 읽어 오디오를 음소거하는 버그가 있어 기본 끔.
+    "AUDIO_FADE_FRAMES": 0,  # 0=끔(권장). 컷 클릭은 Cmd+Shift+D로 제거.
 
     # 안전망
     "MAKE_REJECTED": False,  # 잘려나간 구간만 모은 '버린 컷' 시퀀스 생성 여부 (기본 끔)
