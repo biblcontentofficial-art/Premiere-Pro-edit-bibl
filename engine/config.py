@@ -16,8 +16,11 @@ DEFAULTS = {
     # 무음
     "NOISE_DB": -40.0,       # 이보다 조용하면 무음. 낮출수록 작은 끝음/작은 소리를 살림(민감도↓)
     "MIN_SILENCE": 0.5,      # 이 길이(초) 이상 조용해야 컷
-    "PAD": 0.10,             # 말 앞뒤 여유(초)
-    "MIN_KEEP": 0.20,        # 이보다 짧은 토막은 버림(초)
+    # 비대칭 패딩(premiere-pro-agent 교훈): 말 끝 뒤(lead)보다 다음 말 시작 전(tail)을 더 둬서
+    # 다음 말이 툭 시작되지 않게 — 끊김 소리 완화
+    "PAD_LEAD": 0.10,        # 말이 끝난 뒤 남기는 여유(초)
+    "PAD_TAIL": 0.16,        # 다음 말이 시작되기 전 남기는 여유(초)
+    "MIN_KEEP": 0.25,        # 이보다 짧은 토막은 버림(초) — 짧은 조각이 튀는 소리 유발
 
     # 음량
     "TARGET_LUFS": -14.0,
@@ -42,7 +45,7 @@ DEFAULTS = {
     # 어/음 음향 검출 — Whisper가 글자로 안 적는 망설임 소리를 평탄피치로 잡아 컷.
     # 기본 ON(표준/공격). 안전한 '빈구간'(글자 없는 지속음)만 컷.
     "ACOUSTIC_FILLER": True,
-    "ACOUSTIC_MIN_DUR": 0.20,   # 음향 어/음 최소 길이(초). 낮출수록 많이 잡음(과하면 0.25~0.3로)
+    "ACOUSTIC_MIN_DUR": 0.28,   # 음향 어/음 최소 길이(초). 짧은 미세컷이 튀는 소리 유발 → 0.28로 절제
     # 어/음 뒤 이 시간(초) 안에 말이 이어지면 컷(=말 중간 어/음), 한참 침묵이면 보존(=문장 끝 꼬리)
     "ACOUSTIC_FOLLOW_MAX": 1.0,
 
@@ -59,8 +62,8 @@ DEFAULTS = {
     "STT_MODEL": "mlx-community/whisper-large-v3-turbo",
     "VERBATIM_PROMPT": "음... 어... 그러니까, 아 그게, 좀, 뭐, 약간, 막, 그래서, 어어, 음음, 이제, 뭔가. 네, 자.",
 
-    # 컷 다듬기
-    "CROSSFADE_FRAMES": 0,   # 컷마다 오디오 크로스페이드 프레임 수 (0=끔)
+    # 컷 다듬기 — 클릭/팝(툭 튀는 소리) 제거
+    "AUDIO_FADE_FRAMES": 1,  # 컷마다 오디오 클립에 페이드 인/아웃 프레임 수 (0=끔, 1=약 1프레임)
 
     # 안전망
     "MAKE_REJECTED": False,  # 잘려나간 구간만 모은 '버린 컷' 시퀀스 생성 여부 (기본 끔)
@@ -77,7 +80,8 @@ DEFAULTS = {
 PRESETS = {
     "보수": {   # 덜 자름 — 자연스러움 우선
         "MIN_SILENCE": 0.7,
-        "PAD": 0.15,
+        "PAD_LEAD": 0.12,
+        "PAD_TAIL": 0.20,
         "HESITATION_MIN": 0.5,
         "REPEAT_GAP": 0.4,
         "ACOUSTIC_FILLER": False,   # 보존 우선 — 음향 어/음 컷 안 함
@@ -86,7 +90,8 @@ PRESETS = {
     "표준": {},  # DEFAULTS 그대로
     "공격": {   # 최대한 타이트
         "MIN_SILENCE": 0.4,
-        "PAD": 0.08,
+        "PAD_LEAD": 0.08,
+        "PAD_TAIL": 0.12,
         "HESITATION_MIN": 0.28,
         "REPEAT_GAP": 1.0,
         "ACOUSTIC_FILLER": True,

@@ -251,7 +251,8 @@ def apply_config_to_modules():
     """무음/음량 파라미터를 silence_cut 모듈에 주입."""
     SC.NOISE_DB = CFG["NOISE_DB"]
     SC.MIN_SILENCE = CFG["MIN_SILENCE"]
-    SC.PAD = CFG["PAD"]
+    SC.PAD_LEAD = CFG["PAD_LEAD"]
+    SC.PAD_TAIL = CFG["PAD_TAIL"]
     SC.MIN_KEEP = CFG["MIN_KEEP"]
     SC.TARGET_LUFS = CFG["TARGET_LUFS"]
     SC.TARGET_PEAK_DB = CFG["TARGET_PEAK_DB"]
@@ -402,7 +403,8 @@ def main():
     print("> 프리미어 시퀀스(XML) 생성 중...")
     gain = compute_gain_db(loud)
     xml, seq_dur = build_fcp7_xml(video, info, keeps, gain, base + " [러프컷]",
-                                  clean_audio=clean_audio)
+                                  clean_audio=clean_audio,
+                                  fade_frames=CFG.get("AUDIO_FADE_FRAMES", 0))
     open(xml_out, "w", encoding="utf-8").write(xml)
 
     # ── 프레임 무결성 검증 ──

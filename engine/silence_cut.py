@@ -23,8 +23,9 @@ from urllib.parse import quote
 # ─────────────────────────────────────────────────────────────
 NOISE_DB      = -30.0   # 이 데시벨보다 조용하면 '무음'으로 봄 (-30~-35 권장)
 MIN_SILENCE   = 0.5     # 이 길이(초) 이상 조용해야 컷한다
-PAD           = 0.10    # 말 구간 앞뒤로 이만큼(초) 여유를 남겨 단어 잘림 방지
-MIN_KEEP      = 0.20    # 이보다 짧게 남는 토막(초)은 버린다
+PAD_LEAD      = 0.10    # 말이 끝난 뒤 남기는 여유(초)
+PAD_TAIL      = 0.16    # 다음 말이 시작되기 전 남기는 여유(초) — 비대칭(tail↑)으로 끊김 완화
+MIN_KEEP      = 0.25    # 이보다 짧게 남는 토막(초)은 버린다
 
 TARGET_LUFS   = -14.0   # 유튜브 표준 라우드니스
 TARGET_PEAK_DB = -6.0   # 트루피크가 이 값을 넘지 않게 (둘 다 만족시키는 게인 선택)
@@ -153,7 +154,8 @@ def keep_ranges_from_silence(silences, total):
     # 패딩(앞뒤 여유) 적용
     padded = []
     for a, b in keeps:
-        padded.append([max(0.0, a - PAD), min(total, b + PAD)])
+        # 비대칭: 말 시작 전(tail)은 넉넉히, 말 끝 뒤(lead)는 조금 — 끊김 소리 완화
+        padded.append([max(0.0, a - PAD_TAIL), min(total, b + PAD_LEAD)])
 
     # 겹치면 병합
     merged = []
@@ -181,7 +183,23 @@ def f2frames(t, fps):
     return int(round(t * fps))
 
 
-def build_fcp7_xml(path, info, keeps, gain_db, seq_name, clean_audio=None):
+def audio_fade_filter(dur_frames, fade_frames):
+    """컷마다 오디오 클립에 페이드 인/아웃(레벨 키프레임) — 클릭/팝 제거."""
+    f = min(fade_frames, max(1, dur_frames // 2))
+    if fade_frames < 1 or dur_frames < 2:
+        return ""
+    return ("<filter><effect>"
+            "<name>Audio Levels</name><effectid>audiolevels</effectid>"
+            "<effecttype>audiolevels</effecttype><mediatype>audio</mediatype>"
+            "<parameter><name>Level</name><parameterid>level</parameterid><value>1</value>"
+            f"<keyframe><when>0</when><value>0</value></keyframe>"
+            f"<keyframe><when>{f}</when><value>1</value></keyframe>"
+            f"<keyframe><when>{dur_frames - f}</when><value>1</value></keyframe>"
+            f"<keyframe><when>{dur_frames}</when><value>0</value></keyframe>"
+            "</parameter></effect></filter>")
+
+
+def build_fcp7_xml(path, info, keeps, gain_db, seq_name, clean_audio=None, fade_frames=0):
     fps = info["fps"]
     timebase = int(round(fps))
     ntsc = "TRUE" if abs(fps - timebase * 1000 / 1001) < 0.01 else "FALSE"
@@ -272,7 +290,7 @@ def build_fcp7_xml(path, info, keeps, gain_db, seq_name, clean_audio=None):
 
         if use_clean:
             a_fileref = a_file_full if idx == 0 else '<file id="file-2"/>'
-            a_filter = ""   # loudnorm이 이미 레벨을 맞춰서 추가 게인 불필요
+            a_filter = audio_fade_filter(dur, fade_frames)   # 클릭 제거용 페이드
         else:
             a_fileref = '<file id="file-1"/>'
             a_filter = audio_filter
