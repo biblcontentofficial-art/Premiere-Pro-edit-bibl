@@ -20,6 +20,7 @@ import sys, os, re
 MAX_CHARS_LINE = 30    # 한 줄 30자 내외 (초과하면 맥락 단위로 별도 자막으로 분할)
 MAX_CPS        = 9.0   # 초당 최대 글자수(읽기속도). 초과 시 확장
 MIN_DUR        = 0.7   # 자막 최소 표시시간(초)
+FILL_GAPS      = True  # 자막 사이 빈칸 제거 — 각 자막 끝을 다음 자막 시작까지 연장(연속 표시)
 
 # 비블 스타일 ASS — Pretendard Bold / 55 / 흰색 / 선 없음 / 그림자(135°·거리3·불투명98)
 ASS_FONT    = "Pretendard"
@@ -144,6 +145,17 @@ def sanitize(cues):
     return out
 
 
+def fill_gaps(cues):
+    """자막 사이 빈칸 제거 — 각 자막 끝을 다음 자막 시작까지 연장(연속 표시).
+    마지막 자막은 자기 끝 유지. 겹침 0·정렬은 sanitize가 보장한 상태에서 호출."""
+    cues = sorted(cues, key=lambda x: x[0])
+    for i in range(len(cues) - 1):
+        nxt = cues[i + 1][0]
+        if cues[i][1] < nxt:                   # 빈칸이 있으면 다음 시작까지 채움
+            cues[i][1] = round(nxt, 3)
+    return cues
+
+
 def polish(cues):
     cues = [[s, e, normalize(t)] for s, e, t in cues]
     split = []
@@ -151,6 +163,8 @@ def polish(cues):
         split += split_cue(s, e, t, MAX_CHARS_LINE)
     cues = enforce_cps(split)
     cues = sanitize(cues)
+    if FILL_GAPS:                              # 빈칸 없이 연속 표시
+        cues = fill_gaps(cues)
     return cues
 
 

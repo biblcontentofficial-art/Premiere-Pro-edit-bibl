@@ -19,8 +19,8 @@ from silence_cut import probe_media
 
 # ── 레이아웃 설정 ──
 SEQ_W, SEQ_H = 1080, 1920      # 9:16
-VIDEO_WIDTH_RATIO = 0.85       # 16:9 영상을 프레임 폭의 몇 %로 (이미지 기준 ~85%)
-VIDEO_CENTER_VERT = -0.06      # 세로 위치(-=위로). 위 제목/아래 자막 공간 확보
+SHORTS_SCALE = 85.0            # 프리미어 Motion '비율 조정(%)' 값 그대로
+VIDEO_CENTER_VERT = 0.0        # 세로 위치(0=가운데, -=위로). 제목/워터마크 공간은 프리미어에서 조정
 
 # ── 자막 설정 (이미지의 가운데 자막과 동일 느낌) ──
 CAP_MAX_CHARS = 7              # 한 줄 6~7자
@@ -42,6 +42,7 @@ def fps_int(info):
 
 def build_xml(video, info, start, end, seq_name):
     fps = fps_int(info)
+    ntsc = "TRUE" if abs(info["fps"] - round(info["fps"])) > 0.01 else "FALSE"  # 29.97 등
     f = lambda t: int(round(t * info["fps"]))
     s_in, s_out = f(start), f(end)
     dur = s_out - s_in
@@ -50,10 +51,10 @@ def build_xml(video, info, start, end, seq_name):
     pathurl = "file://" + quote(os.path.abspath(video))
     fname = xesc(os.path.basename(video))
 
-    # 16:9 → 9:16 폭 85%로 축소: 프리미어 Motion Scale(%) = 목표폭 / 소스폭
-    scale = round(SEQ_W * VIDEO_WIDTH_RATIO / info["width"] * 100, 2)
+    # 프리미어 Motion 비율 조정(%) = SHORTS_SCALE 값 그대로
+    scale = SHORTS_SCALE
 
-    rate = f"<rate><timebase>{fps}</timebase><ntsc>FALSE</ntsc></rate>"
+    rate = f"<rate><timebase>{fps}</timebase><ntsc>{ntsc}</ntsc></rate>"
     filefull = (f'<file id="f1"><name>{fname}</name><pathurl>{xesc(pathurl)}</pathurl>'
                 f'{rate}<duration>{total}</duration><media>'
                 f'<video><samplecharacteristics>{rate}<width>{info["width"]}</width>'
@@ -125,7 +126,7 @@ def main():
         open(os.path.join(outdir, name + ".xml"), "w", encoding="utf-8").write(xml)
         made += 1
         print(f"  {name}.xml ({end-start:.0f}s)")
-    print(f"\n쇼츠 XML {made}개 → output/shorts/  (16:9를 {int(VIDEO_WIDTH_RATIO*100)}% 축소·가운데)")
+    print(f"\n쇼츠 XML {made}개 → output/shorts/  (Motion 비율 {int(SHORTS_SCALE)}% · 가운데)")
 
 
 if __name__ == "__main__":

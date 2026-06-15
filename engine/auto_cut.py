@@ -449,6 +449,7 @@ def main():
     if CFG.get("POLISH_SUBTITLES"):
         try:
             import subtitle_polish as SP
+            SP.FILL_GAPS = CFG.get("SUBTITLE_FILL_GAPS", True)   # 자막 빈칸 제거 여부
             cues = SP.polish(SP.parse_srt(srt_out))
             stem = os.path.splitext(srt_out)[0]
             SP.write_srt(cues, srt_out)

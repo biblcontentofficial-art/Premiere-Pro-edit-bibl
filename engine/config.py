@@ -70,6 +70,7 @@ DEFAULTS = {
     "BACKUP_OUTPUTS": True,  # 덮어쓰기 전 이전 결과(xml/srt/report/words)를 _backup/에 보관
     "HTML_REPORT": True,     # 비블 다크 톤 시각 리포트(클릭 타임코드) HTML 생성
     "POLISH_SUBTITLES": True, # 자막을 한 줄 30자로 마감 + .vtt/.ass(비블 스타일) 까지 한 번에 생성
+    "SUBTITLE_FILL_GAPS": True, # 자막 사이 빈칸 제거 — 각 자막 끝을 다음 자막 시작까지 연장(연속 표시)
 
     # 자연스러움 가드 — 컷이 너무 촘촘하면 부자연스러움. 그런 구간을 찾아 경고.
     "CHOPPY_WINDOW": 8.0,    # 이 길이(초) 창 안에
