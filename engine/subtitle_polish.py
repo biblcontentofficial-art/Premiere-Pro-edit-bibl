@@ -17,7 +17,7 @@ subtitle_polish.py — 자막(SRT) 고도화 + 다중 포맷 출력
 import sys, os, re
 
 # ── 설정 ──
-MAX_CHARS_LINE = 30    # 한 줄 30자 내외 (초과하면 맥락 단위로 별도 자막으로 분할)
+MAX_CHARS_LINE = 38    # 한 줄 최대 글자수(의미단위 분할은 make_subtitles.semantic_chunk가 처리; 여기선 안전망)
 MAX_CPS        = 9.0   # 초당 최대 글자수(읽기속도). 초과 시 확장
 MIN_DUR        = 0.7   # 자막 최소 표시시간(초)
 FILL_GAPS      = True  # 자막 사이 빈칸 제거 — 각 자막 끝을 다음 자막 시작까지 연장(연속 표시)
