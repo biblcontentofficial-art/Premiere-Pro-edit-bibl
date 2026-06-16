@@ -322,7 +322,7 @@ def main():
     # ── 제거 구간 계산 ──
     keeps = sil_keeps
     removes = []
-    report = {"추임새": [], "망설임": [], "더듬/중복": []}
+    report = {"추임새": [], "망설임": [], "더듬/중복": [], "숨소리": []}
     sw = sorted(words, key=lambda w: w[0])
     fpad = CFG["FILLER_PAD"]
 
@@ -379,16 +379,42 @@ def main():
         except Exception as ex:
             print(f"   [주의] 음향 검출 건너뜀: {ex}")
 
+    if CFG.get("BREATH_REDUCE") and clean_audio:
+        try:
+            import breath_reduce as BR
+            print("> 숨소리 축소 중...")
+            aud, asr = BR.load_audio(clean_audio)
+            br = BR.detect_breaths(
+                aud, asr, words, sil_keeps,
+                min_dur=CFG.get("BREATH_MIN_DUR", 0.15),
+                rel_lo=CFG.get("BREATH_REL_LO", -40.0),
+                rel_hi=CFG.get("BREATH_REL_HI", -12.0),
+                flatness=CFG.get("BREATH_FLATNESS", 0.35),
+                frac=CFG.get("BREATH_FRAC", 0.40),
+                keep=CFG.get("BREATH_KEEP", 0.12),
+                pad=CFG.get("BREATH_PAD", 0.04))
+            cut = sum(b - a for a, b in br)
+            removes += [list(r) for r in br]
+            report["숨소리"] = [(a, b, "(숨소리)") for a, b in br]
+            print(f"   숨소리 {len(br)}곳 축소 (약 {fmt(cut)})")
+        except Exception as ex:
+            print(f"   [주의] 숨소리 축소 건너뜀: {ex}")
+
     if removes:
         keeps = subtract(sil_keeps, removes)
         kept_now = sum(b - a for a, b in keeps)
-        nf, nh, nr = len(report["추임새"]), len(report["망설임"]), len(report["더듬/중복"])
+        nf, nh, nr, nb = (len(report["추임새"]), len(report["망설임"]),
+                          len(report["더듬/중복"]), len(report["숨소리"]))
         ctx = f" (문맥상 '좀' {n_kept_ctx}개 살림)" if n_kept_ctx else ""
-        print(f"   추임새 {nf} + 망설임 {nh} + 더듬/중복 {nr} 제거{ctx} "
+        parts = []
+        if nf or nh: parts.append(f"추임새 {nf} + 망설임 {nh}")
+        if nr: parts.append(f"더듬/중복 {nr}")
+        if nb: parts.append(f"숨소리 {nb}")
+        print(f"   {' + '.join(parts) or '제거 없음'} 제거{ctx} "
               f"→ 추가로 {fmt(kept_sil - kept_now)} 단축")
         rep_out = os.path.join(outdir, base + "_cut_report.txt")
         with open(rep_out, "w", encoding="utf-8") as f:
-            for cat in ("추임새", "망설임", "더듬/중복"):
+            for cat in ("추임새", "망설임", "더듬/중복", "숨소리"):
                 f.write(f"━━━ {cat} ({len(report[cat])}개) ━━━\n")
                 for s, e, t in report[cat]:
                     f.write(f"  {srt_time(s)}  {t}\n")

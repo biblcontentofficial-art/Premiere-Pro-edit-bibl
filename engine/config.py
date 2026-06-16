@@ -29,17 +29,29 @@ DEFAULTS = {
     "DENOISE": False,        # afftdn FFT 노이즈 제거 (배경 험·에어컨)
     "DEESS": False,          # deesser 치찰음(ㅅ,ㅊ) 완화
 
-    # 추임새
-    "REMOVE_FILLERS": True,
+    # 추임새 — 기본 OFF. 아/어/음/뭐 등을 자르면 말맛이 사라져 부자연스러움(비블 피드백).
+    # 추임새까지 타이트하게 빼려면 '공격' 프리셋을 쓴다.
+    "REMOVE_FILLERS": False,
     "FILLER_SOUND_CHARS": "아어엄음으에",
     "FILLER_PHRASES": ["그러니까", "그니까", "그러니깐", "그니깐", "그까",
                        "뭐", "뭔가", "막", "약간", "좀"],
     "FILLER_PAD": 0.03,
 
-    # 망설임 빈틈(어/음)
-    "REMOVE_HESITATION": True,
+    # 망설임 빈틈(어/음) — 기본 OFF(추임새와 함께 살림)
+    "REMOVE_HESITATION": False,
     "HESITATION_MIN": 0.55,  # 짧은 어/음 꼬리(작은 어미 포함)는 보존, 긴 망설임만 컷
     "HESITATION_PAD": 0.06,
+
+    # 숨소리 축소 — 단어 사이 '들숨/날숨'(노이즈성·말소리보다 작음)을 무음처럼 줄인다.
+    # 유성음(어/음)은 스펙트럼 평탄도가 낮아 제외 → 추임새는 안 건드림.
+    "BREATH_REDUCE": True,
+    "BREATH_MIN_DUR": 0.15,   # 이 길이(초) 이상 단어 간격만 검사
+    "BREATH_REL_LO": -40.0,   # 말소리 기준 이만큼 아래~
+    "BREATH_REL_HI": -12.0,   # ~이만큼 아래(말소리보다 작은 음량대)
+    "BREATH_FLATNESS": 0.35,  # 스펙트럼 평탄도(노이즈성) 임계 — 높을수록 보수적
+    "BREATH_FRAC": 0.40,      # 간격에서 숨소리 프레임 비율이 이 이상이면 줄임
+    "BREATH_KEEP": 0.12,      # 줄인 뒤 남길 자연스러운 쉼(초)
+    "BREATH_PAD": 0.04,       # 앞뒤 여유(초)
 
     # 어/음 음향 검출 — voiced 지속음을 잘라 작은 어미까지 날리고 미세컷을 늘려 choppy 유발.
     # 표준/보수는 기본 OFF(자연스러움). 더 타이트하게 어/음까지 빼려면 공격 프리셋.
@@ -89,10 +101,12 @@ PRESETS = {
         "FILLER_PHRASES": ["그러니까", "그니까", "그러니깐", "그니깐"],
     },
     "표준": {},  # DEFAULTS 그대로
-    "공격": {   # 최대한 타이트
+    "공격": {   # 최대한 타이트 — 추임새/망설임까지 제거(말맛보다 군더더기 제거 우선)
         "MIN_SILENCE": 0.4,
         "PAD_LEAD": 0.08,
         "PAD_TAIL": 0.12,
+        "REMOVE_FILLERS": True,
+        "REMOVE_HESITATION": True,
         "HESITATION_MIN": 0.28,
         "REPEAT_GAP": 1.0,
         "ACOUSTIC_FILLER": True,
