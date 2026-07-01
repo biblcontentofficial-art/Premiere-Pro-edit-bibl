@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-mcam_xml.py — 2캠(화면+얼굴) 싱크 + 러프컷이 적용된 편집가능 FCP7 XML 생성.
+mcam_xml.py — N캠(2캠·3캠…) 싱크 + 러프컷이 적용된 편집가능 FCP7 XML 생성.
 
-전제: 먼저 OBS 화면녹화(mp4)에 auto_cut.py를 돌려
-      output/<base>_cut.xml(keep 구간) + _cut_audio.wav(정리오디오)가 있어야 함.
-이 스크립트는 그 keep 구간을 읽어
-  V1 = 화면(mp4, 기준 타임라인)  · V2 = 얼굴캠(MOV, 오프셋만큼 당겨 싱크)
-  A1 = 정리된 오디오(-14 LUFS)
-로 같은 컷을 양 트랙에 동일 적용해 싱크가 유지되는 2캠 시퀀스를 만든다.
+전제: 먼저 '마스터'(오디오·컷 기준이 될 영상)에 auto_cut.py를 돌려
+      output/<master_base>_cut.xml(keep 구간) + _cut_audio.wav(정리오디오)가 있어야 함.
+이 스크립트는 그 keep 구간을 읽어, 마스터와 각 카메라를 오프셋만큼 당겨 싱크한
+다중 비디오 트랙 + 정리오디오 시퀀스를 만든다. 같은 컷을 모든 트랙에 동일 적용하므로
+싱크가 유지된다. **소스마다 fps가 달라도(예: 카메라 29.97 + OBS 30) 시간 기반으로 정확히 맞춘다.**
 
 사용:
-  python3 mcam_xml.py <화면.mp4> <얼굴.MOV> <face_offset초> [출력.xml]
-  # face_offset = 얼굴캠이 화면녹화보다 늦게 시작한 초(sync_2cam.py의 startA)
+  python3 mcam_xml.py <마스터> [<카메라> <offset초>]...  [--out 출력.xml]
+    offset초 = 그 카메라가 마스터보다 '늦게' 시작한 초 (먼저 시작했으면 음수)
+  예) python3 mcam_xml.py master.mp4 camB.mp4 3.19 obs.mp4 -43.5
 """
 import sys, os, re
 from urllib.parse import quote
@@ -26,17 +26,16 @@ def xesc(s):
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
 
-def parse_keeps_frames(cut_xml):
-    """auto_cut의 _cut.xml에서 비디오 클립(id cv*)의 (in,out) 프레임을 순서대로 추출."""
+def parse_keeps_seconds(cut_xml, fps):
+    """마스터 _cut.xml의 비디오 클립(cv*) (in,out) 프레임 → 초 단위 keep 구간."""
     txt = open(cut_xml, encoding="utf-8").read()
     keeps = []
-    # 비디오 클립만(오디오 ca*는 in/out이 같아 중복 → 제외)
     for ci in re.finditer(r'<clipitem id="cv\d+">.*?</clipitem>', txt, re.S):
-        blk = ci.group(0)
-        mi = re.search(r"<in>(\d+)</in>", blk)
-        mo = re.search(r"<out>(\d+)</out>", blk)
+        b = ci.group(0)
+        mi = re.search(r"<in>(\d+)</in>", b)
+        mo = re.search(r"<out>(\d+)</out>", b)
         if mi and mo:
-            keeps.append((int(mi.group(1)), int(mo.group(1))))
+            keeps.append((int(mi.group(1)) / fps, int(mo.group(1)) / fps))
     return keeps
 
 
@@ -59,7 +58,7 @@ def file_def(fid, path, info, with_video=True, with_audio=True):
     tb = int(round(info["fps"]))
     ntsc = "TRUE" if abs(info["fps"] - round(info["fps"])) > 0.01 else "FALSE"
     total = int(round(info["duration"] * info["fps"]))
-    sr, ch = info["samplerate"], info["channels"]
+    sr = info["samplerate"]
     parts = [f'<file id="{fid}"><name>{fname}</name><pathurl>{xesc(pathurl)}</pathurl>',
              rate_xml(tb, ntsc), f'<duration>{total}</duration><media>']
     if with_video:
@@ -68,115 +67,135 @@ def file_def(fid, path, info, with_video=True, with_audio=True):
                      f'<pixelaspectratio>square</pixelaspectratio></samplecharacteristics></video>')
     if with_audio:
         parts.append(f'<audio><samplecharacteristics><depth>16</depth><samplerate>{sr}</samplerate>'
-                     f'</samplecharacteristics><channelcount>{ch}</channelcount></audio>')
+                     f'</samplecharacteristics><channelcount>{info["channels"]}</channelcount></audio>')
     parts.append('</media></file>')
     return "".join(parts)
 
 
-def vclip(cid, fileref, name, tl_s, tl_e, s_in, s_out, scale):
-    return (f'<clipitem id="{cid}"><name>{xesc(name)}</name>'
-            f'<start>{tl_s}</start><end>{tl_e}</end><in>{s_in}</in><out>{s_out}</out>'
-            f'{fileref}{motion(scale)}</clipitem>')
-
-
-def aclip(cid, fileref, name, tl_s, tl_e, s_in, s_out):
-    return (f'<clipitem id="{cid}"><name>{xesc(name)}</name>'
-            f'<start>{tl_s}</start><end>{tl_e}</end><in>{s_in}</in><out>{s_out}</out>'
-            f'{fileref}<sourcetrack><mediatype>audio</mediatype><trackindex>1</trackindex></sourcetrack>'
-            f'</clipitem>')
-
-
 def main():
-    if len(sys.argv) < 4:
-        print('사용: python3 mcam_xml.py <화면.mp4> <얼굴.MOV> <face_offset초> [출력.xml]'); sys.exit(1)
-    screen, face = sys.argv[1], sys.argv[2]
-    face_off = float(sys.argv[3])
+    args = sys.argv[1:]
+    out_xml = None
+    if "--out" in args:
+        i = args.index("--out"); out_xml = args[i + 1]; del args[i:i + 2]
+    if len(args) < 1:
+        print('사용: python3 mcam_xml.py <마스터> [<카메라> <offset초>]... [--out 출력.xml]'); sys.exit(1)
+
+    master = args[0]
+    cams = []   # (path, offset초)  offset = 마스터보다 늦게 시작한 초(먼저면 음수)
+    rest = args[1:]
+    for k in range(0, len(rest), 2):
+        cams.append((rest[k], float(rest[k + 1])))
+
     proj = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    base = os.path.splitext(os.path.basename(screen))[0]
+    base = os.path.splitext(os.path.basename(master))[0]
     outdir = os.path.join(proj, "output")
     cut_xml = os.path.join(outdir, base + "_cut.xml")
     clean_wav = os.path.join(outdir, base + "_cut_audio.wav")
-    out_xml = sys.argv[4] if len(sys.argv) > 4 else os.path.join(outdir, base + "_2cam.xml")
-
+    if out_xml is None:
+        out_xml = os.path.join(outdir, base + "_mcam.xml")
     for p in (cut_xml, clean_wav):
         if not os.path.exists(p):
-            print("필요 파일 없음:", p, "\n먼저 auto_cut.py를 화면녹화 mp4에 돌리세요."); sys.exit(2)
+            print("필요 파일 없음:", p, "\n먼저 auto_cut.py를 마스터 영상에 돌리세요."); sys.exit(2)
 
-    si = probe_media(screen)
-    fi = probe_media(face)
-    fps = si["fps"]
-    tb = int(round(fps))
-    ntsc = "TRUE" if abs(fps - round(fps)) > 0.01 else "FALSE"
-    off_f = int(round(face_off * fps))          # 얼굴캠을 당길 프레임 수
-    face_total = int(round(fi["duration"] * fi["fps"]))
-    sr, ch = si["samplerate"], si["channels"]
+    mi = probe_media(master)
+    seq_fps = mi["fps"]
+    tb = int(round(seq_fps))
+    ntsc = "TRUE" if abs(seq_fps - round(seq_fps)) > 0.01 else "FALSE"
+    sr, ch = mi["samplerate"], mi["channels"]
 
-    scale_screen = round(SEQ_W / si["width"] * 100, 4)   # 화면 채우기 비율%
-    scale_face = round(SEQ_W / fi["width"] * 100, 4)     # 얼굴 채우기 비율%
+    # 소스 목록: 마스터(offset 0) + 카메라들
+    sources = [(master, 0.0, mi)]
+    for path, off in cams:
+        sources.append((path, off, probe_media(path)))
 
-    keeps = parse_keeps_frames(cut_xml)
+    keeps = parse_keeps_seconds(cut_xml, seq_fps)
     if not keeps:
         print("keep 구간을 못 읽음:", cut_xml); sys.exit(2)
 
-    # 파일 정의(첫 등장 시 전체)
-    f_screen = file_def("file-1", screen, si, True, True)
-    f_face = file_def("file-2", face, fi, True, False)
-    f_wav = file_def("file-3", clean_wav, {**si, "width": 0, "height": 0}, False, True)
+    # 비디오 트랙(소스별), 클립을 시간 기반으로 배치
+    vtracks = []     # 각 원소 = (clip xml 리스트, 표시용 라벨, skip 수)
+    fid_map = {}
+    for si, (path, off, info) in enumerate(sources):
+        fid = f"file-{si+1}"
+        fid_map[si] = fid
+        s_fps = info["fps"]
+        s_dur = info["duration"]
+        scale = round(SEQ_W / info["width"] * 100, 4)
+        name = os.path.basename(path)
+        clips, first = [], True
+        tl_t = 0.0
+        skip = 0
+        for k, (ta, tb_) in enumerate(keeps):
+            dur_t = tb_ - ta
+            if dur_t <= 0:
+                continue
+            ts = round(tl_t * seq_fps); te = round((tl_t + dur_t) * seq_fps)
+            tl_t += dur_t
+            # 이 소스의 소스시간 = 공통시간 - off
+            si_in = ta - off
+            si_out = tb_ - off
+            if si_in < 0 or si_out > s_dur:      # 이 컷 시점에 이 소스 영상이 없음
+                skip += 1
+                continue
+            inf = round(si_in * s_fps); outf = round(si_out * s_fps)
+            ref = file_def(fid, path, info, True, (si == 0)) if first else f'<file id="{fid}"/>'
+            first = False
+            clips.append(f'<clipitem id="{fid}_{k}"><name>{xesc(name)}</name>'
+                         f'<start>{ts}</start><end>{te}</end><in>{inf}</in><out>{outf}</out>'
+                         f'{ref}{motion(scale)}</clipitem>')
+        vtracks.append((clips, name, scale, skip))
 
-    v1, v2, a1 = [], [], []   # 화면, 얼굴, 오디오
-    tl = 0
-    face_skipped = 0
-    for i, (s_in, s_out) in enumerate(keeps):
-        dur = s_out - s_in
-        if dur <= 0:
+    # 오디오: 마스터 정리 wav (마스터 소스시간 = 공통시간)
+    a_info = {**mi, "width": 0, "height": 0}
+    a_clips = []; tl_t = 0.0; first = True
+    for k, (ta, tb_) in enumerate(keeps):
+        dur_t = tb_ - ta
+        if dur_t <= 0:
             continue
-        ts, te = tl, tl + dur
-        tl = te
-        # 화면 V1
-        ref = f_screen if i == 0 else '<file id="file-1"/>'
-        v1.append(vclip(f"sv{i}", ref, os.path.basename(screen), ts, te, s_in, s_out, scale_screen))
-        # 오디오 A1 (정리된 wav, 화면과 같은 소스시간)
-        aref = f_wav if i == 0 else '<file id="file-3"/>'
-        a1.append(aclip(f"sa{i}", aref, os.path.basename(clean_wav), ts, te, s_in, s_out))
-        # 얼굴 V2 (오프셋만큼 당김)
-        f_in, f_out = s_in - off_f, s_out - off_f
-        if f_in >= 0 and f_out <= face_total:
-            fref = f_face if (i == 0 or not any('file-2' in x for x in v2)) else '<file id="file-2"/>'
-            v2.append(vclip(f"fv{i}", fref, os.path.basename(face), ts, te, f_in, f_out, scale_face))
-        else:
-            face_skipped += 1
+        ts = round(tl_t * seq_fps); te = round((tl_t + dur_t) * seq_fps); tl_t += dur_t
+        inf = round(ta * seq_fps); outf = round(tb_ * seq_fps)
+        ref = file_def("file-a", clean_wav, a_info, False, True) if first else '<file id="file-a"/>'
+        first = False
+        a_clips.append(f'<clipitem id="a_{k}"><name>{xesc(os.path.basename(clean_wav))}</name>'
+                       f'<start>{ts}</start><end>{te}</end><in>{inf}</in><out>{outf}</out>'
+                       f'{ref}<sourcetrack><mediatype>audio</mediatype><trackindex>1</trackindex></sourcetrack></clipitem>')
 
-    seq_dur = tl
+    seq_dur = round(sum(b - a for a, b in keeps) * seq_fps)
     r = rate_xml(tb, ntsc)
+    # 트랙 순서: 마스터를 맨 위(마지막 track)로 → 기본 표시 = 마스터 + 마스터 오디오
+    ordered = vtracks[1:] + vtracks[:1]
+    vtrack_xml = "".join(f"<track>{''.join(c)}</track>" for c, _n, _s, _sk in ordered)
     xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE xmeml>
 <xmeml version="5">
-  <sequence id="{xesc(base)}_2cam">
-    <name>{xesc(base)} [2캠 러프컷]</name>
+  <sequence id="{xesc(base)}_mcam">
+    <name>{xesc(base)} [{len(sources)}캠 러프컷]</name>
     <duration>{seq_dur}</duration>
     {r}
     <media>
       <video>
         <format><samplecharacteristics>{r}<width>{SEQ_W}</width><height>{SEQ_H}</height>
           <pixelaspectratio>square</pixelaspectratio></samplecharacteristics></format>
-        <track>{''.join(v1)}</track>
-        <track>{''.join(v2)}</track>
+        {vtrack_xml}
       </video>
       <audio>
         <format><samplecharacteristics><depth>16</depth><samplerate>{sr}</samplerate></samplecharacteristics></format>
-        <track>{''.join(a1)}</track>
+        <track>{''.join(a_clips)}</track>
       </audio>
     </media>
   </sequence>
 </xmeml>
 """
     open(out_xml, "w", encoding="utf-8").write(xml)
-    secs = seq_dur / fps
-    print(f"2캠 XML 생성: {out_xml}")
-    print(f"  컷 {len(keeps)}개 · 시퀀스 {int(secs//60)}:{secs%60:04.1f} · {SEQ_W}x{SEQ_H}@{tb}")
-    print(f"  V1 화면(mp4) 비율 {scale_screen}% · V2 얼굴(MOV) 비율 {scale_face}% · 얼굴 오프셋 -{off_f}f({face_off}s)")
-    if face_skipped:
-        print(f"  ※ 얼굴캠 범위 밖 컷 {face_skipped}개는 V2 비움(화면만)")
+    secs = seq_dur / seq_fps
+    print(f"{len(sources)}캠 XML 생성: {out_xml}")
+    print(f"  컷 {len(keeps)}개 · 시퀀스 {int(secs//60)}:{secs%60:04.1f} · {SEQ_W}x{SEQ_H}@{tb}{'(ntsc)' if ntsc=='TRUE' else ''}")
+    for si, (path, off, info) in enumerate(sources):
+        _c, _n, sc, sk = vtracks[si]
+        tag = "마스터" if si == 0 else f"offset {off:+.2f}s"
+        note = f" · 범위밖 {sk}컷 비움" if sk else ""
+        print(f"  - {os.path.basename(path)} ({tag}) 비율 {sc}% · {info['fps']:.3f}fps{note}")
+    print("  ※ 트랙 맨 위 = 마스터(기본 표시) · 아래 트랙들 = 다른 앵글(전환용)")
 
 
 if __name__ == "__main__":
