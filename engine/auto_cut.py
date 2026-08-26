@@ -469,6 +469,20 @@ def main():
     words = get_transcript(video, audio_for_stt, words_cache)
     print(f"   받아쓴 단어 {len(words)}개")
 
+    # ── 전사 환각 게이트 ──
+    # 컷 계산 전에 알린다. 유령 발화 위에서 컷이 잡혀도 리포트·자연스러움 경고·
+    # XML 검증은 전부 통과하므로, 여기서 못 잡으면 끝까지 아무도 못 잡는다.
+    hall = None
+    try:
+        import hallucination
+        hall = hallucination.detect(words)
+        if hall["suspect"]:
+            print("   [주의] 전사 환각 의심 — 이 러프컷은 신뢰도가 낮습니다")
+            for line in hallucination.summary_lines(hall, info["duration"]):
+                print(f"      {line}")
+    except Exception as ex:
+        print(f"   [주의] 환각 검사 건너뜀: {ex}")
+
     # ── 제거 구간 계산 ──
     keeps = sil_keeps
     removes = []
@@ -635,6 +649,12 @@ def main():
         for s, e, c in choppy:
             f.write(f"  {srt_time(s)}~{srt_time(e)}  {c}컷 (확인 권장)\n")
         f.write("\n")
+        if hall and hall["suspect"]:
+            import hallucination
+            f.write("━━━ [주의] 전사 환각 의심 (러프컷 신뢰도 낮음) ━━━\n")
+            for line in hallucination.summary_lines(hall, info["duration"]):
+                f.write(f"  {line}\n")
+            f.write("\n")
 
     # ── 버린 컷 시퀀스 (잘려나간 구간만) ──
     rej_made = False

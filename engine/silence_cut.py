@@ -59,7 +59,9 @@ def probe_media(path):
             d = _json.loads(r.stdout)
             info = {"duration": float(d["format"]["duration"])}
             for s in d["streams"]:
-                if s.get("codec_type") == "video":
+                # 첫 비디오 스트림만 채택 — DJI mp4 는 실영상 뒤에 mjpeg 썸네일
+                # (540x960 · r_frame_rate 90000/1)이 붙어 있어 덮어쓰면 시퀀스가 깨진다
+                if s.get("codec_type") == "video" and "width" not in info:
                     info["width"] = int(s["width"]); info["height"] = int(s["height"])
                     num, den = s["r_frame_rate"].split("/")
                     info["fps"] = round(int(num) / int(den), 3)
