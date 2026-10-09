@@ -17,7 +17,7 @@ mcam_xml.py — N캠(2캠·3캠…) 싱크 + 러프컷이 적용된 편집가능
 import sys, os, re
 from urllib.parse import quote
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from silence_cut import probe_media
+from silence_cut import probe_media, path_to_url
 
 SEQ_W, SEQ_H = 1920, 1080      # 1080p 출력
 
@@ -53,7 +53,7 @@ def rate_xml(tb, ntsc):
 
 
 def file_def(fid, path, info, with_video=True, with_audio=True):
-    pathurl = "file://" + quote(os.path.abspath(path))
+    pathurl = path_to_url(path)
     fname = xesc(os.path.basename(path))
     tb = int(round(info["fps"]))
     ntsc = "TRUE" if abs(info["fps"] - round(info["fps"])) > 0.01 else "FALSE"

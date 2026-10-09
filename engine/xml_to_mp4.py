@@ -23,7 +23,8 @@ FPS = 30
 
 def p_of(fileel):
     pu = fileel.find(".//pathurl")
-    return unquote(pu.text.replace("file://", "")) if pu is not None else None
+    from silence_cut import url_to_path
+    return url_to_path(pu.text) if pu is not None else None
 
 
 def render_sequence(seq, files_by_id, outdir):

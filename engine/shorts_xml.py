@@ -15,7 +15,7 @@ shorts_xml.py — 쇼츠를 '편집 가능한 9:16 XML'로 생성 (mp4 아님).
 import sys, os, json
 from urllib.parse import quote
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from silence_cut import probe_media
+from silence_cut import probe_media, path_to_url
 
 # ── 레이아웃 설정 ──
 SEQ_W, SEQ_H = 1080, 1920      # 9:16
@@ -48,7 +48,7 @@ def build_xml(video, info, start, end, seq_name):
     dur = s_out - s_in
     total = f(info["duration"])
     sr, ch = info["samplerate"], info["channels"]
-    pathurl = "file://" + quote(os.path.abspath(video))
+    pathurl = path_to_url(video)
     fname = xesc(os.path.basename(video))
 
     # 프리미어 Motion 비율 조정(%) = SHORTS_SCALE 값 그대로

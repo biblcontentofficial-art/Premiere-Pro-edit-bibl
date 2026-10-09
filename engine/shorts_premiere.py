@@ -244,7 +244,8 @@ def xesc(s):
 
 
 def purl(p):
-    return "file://" + quote(os.path.abspath(p))
+    from silence_cut import path_to_url
+    return path_to_url(p)
 
 
 RATE = f"<rate><timebase>{FPS}</timebase><ntsc>FALSE</ntsc></rate>"

@@ -179,8 +179,58 @@ def srt_time(t):
     return f"{h:02d}:{mn:02d}:{s:02d},{ms:03d}"
 
 
+def _add_nvidia_dll_dirs():
+    """pip로 설치한 nvidia-cublas/cudnn DLL을 Windows 로더에 등록."""
+    import os, glob, site
+    if os.name != "nt":
+        return
+    for sp in site.getsitepackages() + [site.getusersitepackages()]:
+        for d in glob.glob(os.path.join(sp, "nvidia", "*", "bin")):
+            os.add_dll_directory(d)
+            os.environ["PATH"] = d + os.pathsep + os.environ.get("PATH", "")
+
+
+def _transcribe_faster(audio, model, initial_prompt, condition):
+    """Windows/Linux용: faster-whisper. GPU(CUDA) 우선, 실패 시 CPU."""
+    import subprocess
+    import numpy as np
+    from faster_whisper import WhisperModel
+    _add_nvidia_dll_dirs()
+    # 디코딩은 ffmpeg로 직접 (faster-whisper 내장 PyAV는 버전 호환 문제가 잦음)
+    pcm = subprocess.run(
+        ["ffmpeg", "-nostdin", "-v", "error", "-i", audio,
+         "-f", "s16le", "-ac", "1", "-ar", "16000", "-"],
+        capture_output=True, check=True).stdout
+    audio = np.frombuffer(pcm, np.int16).astype(np.float32) / 32768.0
+    name = model.split("/")[-1].replace("whisper-", "")   # mlx-community/whisper-large-v3-turbo → large-v3-turbo
+    last_err = None
+    for device, ctype in (("cuda", "float16"), ("cpu", "int8")):
+        try:
+            print(f"> 받아쓰기 중... (모델 {name}, faster-whisper {device})")
+            wm = WhisperModel(name, device=device, compute_type=ctype)
+            segs, _ = wm.transcribe(
+                audio, language="ko", word_timestamps=True,
+                condition_on_previous_text=condition,
+                initial_prompt=initial_prompt,
+            )
+            words = []
+            for seg in segs:   # 제너레이터: 실제 추론은 여기서 실행됨
+                for w in seg.words or []:
+                    txt = w.word.strip()
+                    if txt:
+                        words.append((float(w.start), float(w.end), txt))
+            return words
+        except Exception as e:
+            last_err = e
+            print(f"  ! {device} 실패 ({e.__class__.__name__}: {e}) → 다음 장치로")
+    raise last_err
+
+
 def transcribe(audio, model=MODEL, initial_prompt=None, condition=False):
-    import mlx_whisper
+    try:
+        import mlx_whisper   # Apple Silicon 전용
+    except (ImportError, OSError):
+        return _transcribe_faster(audio, model, initial_prompt, condition)
     print(f"> 받아쓰기 중... (모델 {model.split('/')[-1]}, 로컬)")
     r = mlx_whisper.transcribe(
         audio, path_or_hf_repo=model, language="ko",

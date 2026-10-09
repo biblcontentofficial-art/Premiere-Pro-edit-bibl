@@ -25,13 +25,19 @@ if [ "$N" -eq 0 ]; then
   exit 1
 fi
 
+# Windows(Git Bash)의 python3는 MS Store 바로가기일 수 있어 실제로 실행되는 것을 고른다
+if python3 -c "" 2>/dev/null; then PY=(python3)
+elif py -3 -c "" 2>/dev/null; then PY=(py -3)
+else PY=(python); fi
+export PYTHONIOENCODING=utf-8
+
 echo "총 $N 개 영상 · 프리셋 $PRESET"
 i=0
 for f in "${FILES[@]}"; do
   i=$((i+1))
   echo ""
   echo "━━━━━━━━━━ [$i/$N] $(basename "$f") ━━━━━━━━━━"
-  python3 "$DIR/engine/auto_cut.py" "$f" --preset "$PRESET" || echo "[주의] 실패: $(basename "$f") (건너뜀)"
+  "${PY[@]}" "$DIR/engine/auto_cut.py" "$f" --preset "$PRESET" || echo "[주의] 실패: $(basename "$f") (건너뜀)"
 done
 
 echo ""

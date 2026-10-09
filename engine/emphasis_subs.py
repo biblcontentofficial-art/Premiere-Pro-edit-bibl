@@ -62,7 +62,7 @@ WrapStyle: 0
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Bibl,{SP.ASS_FONT},{SP.ASS_SIZE},{WHITE},&H000000FF,&H00000000,&H05000000,-1,0,0,0,100,100,0,0,1,{SP.ASS_OUTLINE},{SP.ASS_SHADOW},2,80,80,{SP.ASS_MARGIN_V},1
+{SP.ass_style_line(primary=WHITE)}
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text

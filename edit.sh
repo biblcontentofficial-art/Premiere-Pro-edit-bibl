@@ -23,4 +23,10 @@ if [ ! -f "$VIDEO" ]; then
   exit 1
 fi
 
-python3 "$DIR/engine/auto_cut.py" "$@"
+# Windows(Git Bash)의 python3는 MS Store 바로가기일 수 있어 실제로 실행되는 것을 고른다
+if python3 -c "" 2>/dev/null; then PY=(python3)
+elif py -3 -c "" 2>/dev/null; then PY=(py -3)
+else PY=(python); fi
+export PYTHONIOENCODING=utf-8
+
+"${PY[@]}" "$DIR/engine/auto_cut.py" "$@"

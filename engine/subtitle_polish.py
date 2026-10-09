@@ -28,6 +28,39 @@ ASS_SIZE    = 55
 ASS_OUTLINE = 0        # 선(스트로크) 없음
 ASS_SHADOW  = 3        # 그림자 거리
 ASS_MARGIN_V = 80
+ASS_BOLD    = True
+ASS_BOX     = False    # True면 그림자 대신 각진 배경 박스(BorderStyle 3)
+ASS_BOX_OPACITY = 0.6  # 박스 불투명도 0~1
+ASS_BOX_PAD = 12       # 박스 안쪽 여백(px)
+
+# config.json(프로젝트 루트) 'SUB_*' 키로 덮어쓰기 — 사용자별 자막 스타일
+try:
+    import json as _json
+    _p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.json")
+    if os.path.exists(_p):
+        _u = _json.load(open(_p, encoding="utf-8"))
+        ASS_FONT = _u.get("SUB_FONT", ASS_FONT)
+        ASS_SIZE = _u.get("SUB_SIZE", ASS_SIZE)
+        ASS_BOLD = _u.get("SUB_BOLD", ASS_BOLD)
+        ASS_BOX = _u.get("SUB_BOX", ASS_BOX)
+        ASS_BOX_OPACITY = _u.get("SUB_BOX_OPACITY", ASS_BOX_OPACITY)
+        ASS_BOX_PAD = _u.get("SUB_BOX_PAD", ASS_BOX_PAD)
+        ASS_MARGIN_V = _u.get("SUB_MARGIN_V", ASS_MARGIN_V)
+except Exception as _e:
+    print(f"   [주의] config.json 자막 스타일 읽기 실패({_e}) — 기본 스타일 사용")
+
+
+def ass_style_line(name="Bibl", primary="&H00FFFFFF"):
+    """ASS Style 한 줄. 박스 모드면 검은 사각 배경(라운드 없음), 아니면 비블 그림자 스타일."""
+    bold = -1 if ASS_BOLD else 0
+    if ASS_BOX:
+        alpha = f"{round(255 * (1 - ASS_BOX_OPACITY)):02X}"   # ASS 알파: 00=불투명, FF=투명
+        box = f"&H{alpha}000000"
+        # BorderStyle 3: OutlineColour가 박스 색, Outline이 박스 여백
+        return (f"Style: {name},{ASS_FONT},{ASS_SIZE},{primary},&H000000FF,{box},{box},"
+                f"{bold},0,0,0,100,100,0,0,3,{ASS_BOX_PAD},0,2,80,80,{ASS_MARGIN_V},1")
+    return (f"Style: {name},{ASS_FONT},{ASS_SIZE},{primary},&H000000FF,&H00000000,&H05000000,"
+            f"{bold},0,0,0,100,100,0,0,1,{ASS_OUTLINE},{ASS_SHADOW},2,80,80,{ASS_MARGIN_V},1")
 
 
 def parse_srt(path):
@@ -190,7 +223,7 @@ WrapStyle: 0
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Bibl,{ASS_FONT},{ASS_SIZE},&H00FFFFFF,&H000000FF,&H00000000,&H05000000,-1,0,0,0,100,100,0,0,1,{ASS_OUTLINE},{ASS_SHADOW},2,80,80,{ASS_MARGIN_V},1
+{ass_style_line()}
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text

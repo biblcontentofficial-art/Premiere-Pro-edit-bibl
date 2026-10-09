@@ -21,7 +21,7 @@ def measure(path):
     dur = info["duration"]
 
     # 라우드니스 + 트루피크
-    r = run([FFMPEG, "-hide_banner", "-i", path,
+    r = run([FFMPEG, "-hide_banner", "-i", path, "-vn",
              "-af", "loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json", "-f", "null", "-"])
     def g(k):
         m = re.search(rf'"{k}"\s*:\s*"?(-?\d+\.?\d*)"?', r.stderr)
@@ -29,12 +29,12 @@ def measure(path):
     lufs, tp = g("input_i"), g("input_tp")
 
     # 평균 음량
-    r2 = run([FFMPEG, "-hide_banner", "-i", path, "-af", "volumedetect", "-f", "null", "-"])
+    r2 = run([FFMPEG, "-hide_banner", "-i", path, "-vn", "-af", "volumedetect", "-f", "null", "-"])
     mv = re.search(r"mean_volume:\s*(-?\d+\.?\d*)", r2.stderr)
     mean_vol = float(mv.group(1)) if mv else None
 
     # 무음 비율 (-40dB, 0.5초 기준)
-    r3 = run([FFMPEG, "-hide_banner", "-nostats", "-i", path,
+    r3 = run([FFMPEG, "-hide_banner", "-nostats", "-i", path, "-vn",
               "-af", "silencedetect=noise=-40dB:d=0.5", "-f", "null", "-"])
     sil = sum(float(x) for x in re.findall(r"silence_duration:\s*(\d+\.?\d*)", r3.stderr))
     sil_ratio = sil / dur if dur else 0

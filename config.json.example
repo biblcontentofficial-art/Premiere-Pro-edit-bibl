@@ -1,6 +1,7 @@
 {
   "_설명": "이 파일을 config.json 으로 복사하면 프리셋보다 우선 적용됩니다. 바꾸고 싶은 값만 남기고 나머지는 지워도 됩니다.",
   "_프리셋_쓰는법": "config.json 없이 ./edit.sh \"영상.mp4\" --preset 공격  처럼 실행하면 보수/표준/공격 프리셋 사용",
+  "_자막스타일": "ASS 자막 스타일 변경(선택): SUB_FONT(설치된 글꼴 이름), SUB_SIZE, SUB_BOLD(true/false), SUB_BOX(true=각진 검은 배경 박스), SUB_BOX_OPACITY(0~1), SUB_BOX_PAD, SUB_MARGIN_V. 예: \"SUB_FONT\": \"Paperlogy 3 Light\", \"SUB_BOLD\": false, \"SUB_BOX\": true, \"SUB_BOX_OPACITY\": 0.6",
 
   "MIN_SILENCE": 0.5,
   "PAD": 0.10,

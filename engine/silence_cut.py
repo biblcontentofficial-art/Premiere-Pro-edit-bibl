@@ -43,6 +43,27 @@ def run(cmd):
     return subprocess.run(cmd, capture_output=True, text=True)
 
 
+def path_to_url(path):
+    """XML <pathurl>용 file URL. Windows는 프리미어 형식(file://localhost/H:/...)으로."""
+    abspath = os.path.abspath(path)
+    if os.name == "nt":
+        return "file://localhost/" + quote(abspath.replace("\\", "/"), safe="/:")
+    return "file://" + quote(abspath)
+
+
+def url_to_path(url):
+    """path_to_url의 역변환 (file://, file://localhost/ 둘 다 처리)."""
+    from urllib.parse import unquote
+    p = unquote(url)
+    for pre in ("file://localhost/", "file://localhost", "file://"):
+        if p.startswith(pre):
+            p = p[len(pre):]
+            break
+    if os.name == "nt":
+        p = p.lstrip("/").replace("/", "\\")   # /H:/x → H:\x
+    return p
+
+
 import shutil as _shutil
 FFPROBE = _shutil.which("ffprobe") or os.path.expanduser("~/bin/ffprobe")
 HAS_FFPROBE = os.path.exists(FFPROBE) if "/" in FFPROBE else bool(_shutil.which("ffprobe"))
@@ -59,7 +80,7 @@ def probe_media(path):
             d = _json.loads(r.stdout)
             info = {"duration": float(d["format"]["duration"])}
             for s in d["streams"]:
-                if s.get("codec_type") == "video":
+                if s.get("codec_type") == "video" and "width" not in info:  # 첫 비디오만(DJI 등 커버 MJPEG 무시)
                     info["width"] = int(s["width"]); info["height"] = int(s["height"])
                     num, den = s["r_frame_rate"].split("/")
                     info["fps"] = round(int(num) / int(den), 3)
@@ -67,7 +88,8 @@ def probe_media(path):
                     info["samplerate"] = int(s.get("sample_rate", 48000))
                     info["channels"] = int(s.get("channels", 2))
             info.setdefault("samplerate", 48000); info.setdefault("channels", 2)
-            if "width" in info and "fps" in info:
+            has_video = any(s.get("codec_type") == "video" for s in d["streams"])
+            if ("width" in info and "fps" in info) or not has_video:   # 오디오 전용(WAV 등)도 허용
                 return info
         except Exception:
             pass  # 실패하면 아래 ffmpeg 파싱으로 폴백
@@ -79,9 +101,11 @@ def probe_media(path):
     h, mi, s = int(m.group(1)), int(m.group(2)), float(m.group(3))
     info["duration"] = h * 3600 + mi * 60 + s
     mv = re.search(r"Video:.*?(\d{2,5})x(\d{2,5})", err)
-    info["width"], info["height"] = int(mv.group(1)), int(mv.group(2))
+    if mv:   # 오디오 전용 파일이면 비디오 정보 없음
+        info["width"], info["height"] = int(mv.group(1)), int(mv.group(2))
     mf = re.search(r"(\d+(?:\.\d+)?)\s*fps", err)
-    info["fps"] = float(mf.group(1))
+    if mf:
+        info["fps"] = float(mf.group(1))
     ma = re.search(r"Audio:.*?(\d+) Hz.*?(mono|stereo|(\d+) channels)", err)
     if ma:
         info["samplerate"] = int(ma.group(1))
@@ -93,7 +117,7 @@ def probe_media(path):
 
 def detect_silence(path):
     """무음 구간 [(start,end), ...] 반환."""
-    r = run([FFMPEG, "-hide_banner", "-nostats", "-i", path,
+    r = run([FFMPEG, "-hide_banner", "-nostats", "-i", path, "-vn",
              "-af", f"silencedetect=noise={NOISE_DB}dB:d={MIN_SILENCE}",
              "-f", "null", "-"])
     err = r.stderr
@@ -108,7 +132,7 @@ def detect_silence(path):
 
 def measure_loudness(path, which="input"):
     """loudnorm 분석 패스로 통합 라우드니스(I)와 트루피크(TP) 측정."""
-    r = run([FFMPEG, "-hide_banner", "-i", path,
+    r = run([FFMPEG, "-hide_banner", "-i", path, "-vn",
              "-af", "loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json",
              "-f", "null", "-"])
     err = r.stderr
@@ -210,7 +234,7 @@ def build_fcp7_xml(path, info, keeps, gain_db, seq_name, clean_audio=None, fade_
     sr, ch = info["samplerate"], info["channels"]
 
     abspath = os.path.abspath(path)
-    pathurl = "file://" + quote(abspath)
+    pathurl = path_to_url(abspath)
     fname = os.path.basename(abspath)
     gain_lin = round(10 ** (gain_db / 20.0), 6)
 
@@ -218,7 +242,7 @@ def build_fcp7_xml(path, info, keeps, gain_db, seq_name, clean_audio=None, fade_
     use_clean = clean_audio is not None
     if use_clean:
         a_abspath = os.path.abspath(clean_audio)
-        a_pathurl = "file://" + quote(a_abspath)
+        a_pathurl = path_to_url(a_abspath)
         a_fname = os.path.basename(a_abspath)
 
     def rate(tb=timebase):

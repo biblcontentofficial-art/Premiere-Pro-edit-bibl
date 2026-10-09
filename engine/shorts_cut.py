@@ -15,7 +15,7 @@ shorts_cut.py — '컷(무음·숨소리 정리)된' 9:16 쇼츠 클립 + 6~7자
 import sys, os, re, json
 from urllib.parse import quote
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from silence_cut import probe_media
+from silence_cut import probe_media, path_to_url
 
 SEQ_W, SEQ_H = 1080, 1920
 CAP_MAX = 7          # 자막 한 줄 최대 글자수(공백 제외 기준 6~7자)
@@ -89,8 +89,8 @@ def build_short(video, info, wav, subclips, fps, scale):
     tb = int(round(fps)); ntsc = "TRUE" if abs(fps - round(fps)) > 0.01 else "FALSE"
     rate = f"<rate><timebase>{tb}</timebase><ntsc>{ntsc}</ntsc></rate>"
     total = int(round(info["duration"] * fps)); sr, ch = info["samplerate"], info["channels"]
-    vpath = "file://" + quote(os.path.abspath(video)); vname = xesc(os.path.basename(video))
-    apath = "file://" + quote(os.path.abspath(wav)); aname = xesc(os.path.basename(wav))
+    vpath = path_to_url(video); vname = xesc(os.path.basename(video))
+    apath = path_to_url(wav); aname = xesc(os.path.basename(wav))
     vfile = (f'<file id="fv"><name>{vname}</name><pathurl>{xesc(vpath)}</pathurl>{rate}'
              f'<duration>{total}</duration><media><video><samplecharacteristics>{rate}'
              f'<width>{info["width"]}</width><height>{info["height"]}</height>'
